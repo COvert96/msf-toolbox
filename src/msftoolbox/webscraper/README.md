@@ -1,151 +1,88 @@
-Below is an example README you can include in your repository, modeled after the ReliefWebClient README provided:
-
-```markdown
-# Reporting
+# SeleniumScraperClient
 
 ## Overview
 
-`reporting.py` is a Python module designed to generate and visualize country-level summaries of USAID funding data. It focuses on **current dollar amounts** and allows for quick filtering by country and fiscal year. Where a fiscal year is not specified, the module defaults to analyzing the last five years of available data.
+`SeleniumScraperClient` is a Python class designed for scraping data from websites using Selenium. It provides methods for listing tables on a webpage, scraping table data (including paginated tables), and returning results in a structured format (pandas DataFrame) for further analysis or storage.
 
 ## Features
 
-- **Top Activities by Funding**: Identify the most heavily funded activities in a given country.
-- **Top Partners by Funding**: Determine which implementing partners receive the most USAID funding.
-- **Top Sectors by Funding**: Summarize which international sectors benefit most.
-- **Funding per Category**: Analyze funding distribution by US category.
-- **Optional Year Filter**: Retrieve summaries for a specific fiscal year or default to the last five years.
-- **Visualization**: Easy-to-read horizontal bar charts using Seaborn to bring your data to life.
+- **List Tables**: Retrieve a list of all tables on a page, including row and column counts.
+- **Scrape Tables**: Extract data from a chosen table by its index.
+- **Optional Pagination**: Navigate to additional pages of data when a "Next" button (or similar) is present.
+- **Error Handling**: Manage errors gracefully, providing logs and clear messages.
 
 ## Usage
 
-### Setup
-Make sure you have the necessary Python packages installed:
-```bash
-pip install pandas seaborn matplotlib
-```
-If you’re using this module in a larger toolbox, ensure you import it correctly based on your project's structure.
-
-### Data Preparation
-Load your data into a pandas DataFrame:
-```python
-import pandas as pd
-
-df = pd.read_csv("https://s3.amazonaws.com/files.explorer.devtechlab.com/us_foreign_aid_complete.csv")
-```
-
-### Summaries
-
-#### Get Top Activities
-```python
-from reporting import get_top_activities_by_funding
-
-country = "Afghanistan"
-activities_summary = get_top_activities_by_funding(df, country=country, top_n=5)
-print(activities_summary)
-```
-This will output the top 5 activities for the last five fiscal years by default.
-
-#### Get Top Partners
-```python
-from reporting import get_top_partners_by_funding
-
-partners_summary = get_top_partners_by_funding(df, country=country, top_n=5)
-print(partners_summary)
-```
-Retrieve the most heavily funded implementing partners.
-
-#### Get Top Sectors
-```python
-from reporting import get_top_sectors_by_funding
-
-sectors_summary = get_top_sectors_by_funding(df, country=country, top_n=5)
-print(sectors_summary)
-```
-Identify which sectors receive the greatest share of funds.
-
-#### Funding per Category
-```python
-from reporting import get_funding_per_category
-
-category_summary = get_funding_per_category(df, country=country)
-print(category_summary)
-```
-Discover how funding is allocated by US Category.
-
-### Visualizations
-
-#### Plot Top Activities
-```python
-from reporting import plot_top_activities_by_funding
-
-plot_top_activities_by_funding(df, country=country, top_n=5)
-```
-Generates a horizontal bar chart of activities, sorted by funding.
-
-#### Plot Top Partners
-```python
-from reporting import plot_top_partners_by_funding
-
-plot_top_partners_by_funding(df, country=country, top_n=5)
-```
-Shows which implementing partners receive the largest funding amounts.
-
-#### Plot Top Sectors
-```python
-from reporting import plot_top_sectors_by_funding
-
-plot_top_sectors_by_funding(df, country=country, top_n=5)
-```
-
-#### Plot Funding per Category
-```python
-from reporting import plot_funding_per_category
-
-plot_funding_per_category(df, country=country)
-```
-Displays a bar chart of funding by US category.
-
-## Example Workflow
-Below is a simple end-to-end workflow:
+### Initialization
 
 ```python
-import pandas as pd
-from reporting import (
-    get_top_activities_by_funding, 
-    plot_top_activities_by_funding,
-    get_top_partners_by_funding,
-    plot_top_partners_by_funding
+from data import SeleniumScraperClient
+
+# Initialize the scraper client
+client = SeleniumScraperClient(
+    headless=True,      # whether to run browser in headless mode
+    implicit_wait=10    # implicit wait time (seconds) for Selenium
+)
+```
+
+### Methods
+
+#### List Tables
+Retrieve a list of dictionaries describing each table found on the page. The dictionary includes:
+- Index (zero-based index of the table on the page)
+- Number of rows
+- Number of columns
+- Selenium WebElement reference
+
+```python
+tables_info = client.list_tables("https://example.com")
+for table_info in tables_info:
+    print(table_info)
+```
+
+#### Scrape Table by Index
+Extract the data from a specific table by specifying its index. Optionally handle pagination by setting `paginated=True` and providing the XPath for the “Next” button.
+
+```python
+df = client.scrape_table_by_index(
+    url="https://example.com",
+    table_index=0,
+    paginated=True,
+    next_button_xpath="//button[contains(., 'next page')]"
+)
+```
+
+### Example Workflow
+
+Below is a simple workflow demonstrating how to list available tables on a page and then scrape one of them (with or without pagination).
+
+```python
+# Initialize the client
+client = SeleniumScraperClient(headless=True)
+
+# Step 1: List all tables on the webpage
+tables_info = client.list_tables("https://example.com")
+
+# Inspect the output and choose a table index (e.g., 0)
+chosen_index = 0
+
+# Step 2: Scrape the chosen table (assume it's paginated)
+df_table = client.scrape_table_by_index(
+    url="https://example.com",
+    table_index=chosen_index,
+    paginated=True,
+    next_button_xpath="//button[contains(., 'next page')]"
 )
 
-# 1. Load the data
-df = pd.read_csv("https://s3.amazonaws.com/files.explorer.devtechlab.com/us_foreign_aid_complete.csv")
-
-# 2. Define parameters
-country = "Afghanistan"
-year = 2020  # or None for last five years
-
-# 3. Retrieve a summary of top activities
-top_activities = get_top_activities_by_funding(df, country, year, top_n=5)
-print(top_activities)
-
-# 4. Visualize the top activities
-plot_top_activities_by_funding(df, country, year, top_n=5)
-
-# 5. Get and plot top partners
-top_partners = get_top_partners_by_funding(df, country, year, top_n=5)
-print(top_partners)
-plot_top_partners_by_funding(df, country, year, top_n=5)
+# Step 3: Examine the DataFrame
+print(df_table.head())
 ```
 
 ## Error Handling
-- **Missing Columns**: If required columns (e.g., `Current Dollar Amount`, `Country Name`, `Fiscal Year`) are missing, a `KeyError` might be raised.
-- **No Data**: Queries for a country or year with no data will simply return empty DataFrames or produce empty plots.
 
-## Contributing
-Please follow standard pull request guidelines if you would like to contribute to `reporting.py`. This includes creating a feature branch, adding documentation, and making sure existing tests (if any) are passing before submitting.
+- **Driver Initialization**: If the Selenium WebDriver fails to initialize, an error is logged and re-raised.
+- **Table Not Found**: If a specified table index is out of range, an exception is raised with a clear message.
+- **Pagination**: If a user sets `paginated=True` but does not provide a valid `next_button_xpath`, an exception is raised.
+- **Exception Logging**: Any unexpected errors during table extraction or pagination are caught, logged, and clearly communicated.
 
-## License
-This module is distributed under the MIT License. See `LICENSE` for details.
-```
-
-This README covers the primary module features, usage examples, and error‐handling notes, giving future users a clear understanding of how to integrate and benefit from `reporting.py` in their pipelines.
+This class provides a structured approach to extracting and processing data from websites, with built-in error handling to ensure reliable operation.

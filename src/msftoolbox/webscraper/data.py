@@ -217,7 +217,7 @@ class SeleniumScraperClient:
 # Unit tests for SeleniumScraperClient can be added in a separate file (e.g., test_data.py)
 if __name__ == "__main__":
     # Basic example usage:
-    test_url = "https://example.com"  # Replace with an actual URL for testing
+    test_url = "https://foreignassistance.gov/cd/afghanistan/"  # Replace with an actual URL for testing
 
     client = SeleniumScraperClient(headless=True)
 
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     try:
         # Example: scrape the first table; set paginated=True if the table requires pagination.
         df_table = client.scrape_table_by_index(
-            test_url, table_index=0, paginated=False
+            test_url, table_index=0, paginated=True
         )
         print("\nScraped Table DataFrame (first 5 rows):")
         print(df_table.head())
