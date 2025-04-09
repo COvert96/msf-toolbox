@@ -2,6 +2,7 @@
 data.py
 
 This module defines the SeleniumScraperClient, a generic Selenium tool for extracting HTML table data from any website.
+Selenium is used to handle dynamic content that requires JavaScript execution.
 It provides methods to:
   - List all tables on a given webpage.
   - Scrape a selected table by index, with optional pagination support.
@@ -217,7 +218,7 @@ class SeleniumScraperClient:
 # Unit tests for SeleniumScraperClient can be added in a separate file (e.g., test_data.py)
 if __name__ == "__main__":
     # Basic example usage:
-    test_url = "https://foreignassistance.gov/cd/afghanistan/"  # Replace with an actual URL for testing
+    test_url = "https://fts.unocha.org/global-funding/donors/2025"  # Replace with an actual URL for testing
 
     client = SeleniumScraperClient(headless=True)
 
@@ -234,7 +235,7 @@ if __name__ == "__main__":
     try:
         # Example: scrape the first table; set paginated=True if the table requires pagination.
         df_table = client.scrape_table_by_index(
-            test_url, table_index=0, paginated=True
+            test_url, table_index=0, paginated=False
         )
         print("\nScraped Table DataFrame (first 5 rows):")
         print(df_table.head())
