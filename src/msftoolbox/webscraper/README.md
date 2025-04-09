@@ -1,48 +1,53 @@
-# SeleniumScraperClient
+# WebScraper Module
 
-## Overview
+This repository provides two distinct scraping clients to handle different scenarios:
 
-`SeleniumScraperClient` is a Python class designed for scraping data from websites using Selenium. It provides methods for listing tables on a webpage, scraping table data (including paginated tables), and returning results in a structured format (pandas DataFrame) for further analysis or storage.
+1. **SeleniumScraperClient** (in `dynamic.py`): Ideal for scraping data from dynamically loaded or JavaScript-heavy pages.
+2. **BeautifulSoupScraperClient** (in `static.py`): Great for simpler, static websites where the table data is already rendered in the HTML source.
 
-## Features
+## 1. SeleniumScraperClient
 
-- **List Tables**: Retrieve a list of all tables on a page, including row and column counts.
-- **Scrape Tables**: Extract data from a chosen table by its index.
-- **Optional Pagination**: Navigate to additional pages of data when a "Next" button (or similar) is present.
-- **Error Handling**: Manage errors gracefully, providing logs and clear messages.
+### Overview
 
-## Usage
+`SeleniumScraperClient` leverages Selenium to scrape data from webpages that require JavaScript execution or dynamic interactions. It offers methods for:
+- Listing tables on a page, including row and column counts
+- Extracting data from a chosen table by index
+- Optionally following pagination using a “Next” button or similar UI element
+- Logging and clear exception messages
 
-### Initialization
+### Features
 
+- **List Tables**: Retrieves a list of all tables, including row/column counts.
+- **Scrape Tables**: Extracts data into a `pandas.DataFrame`.
+- **Optional Pagination**: Click a “Next” button (identified by XPath) until no more pages remain.
+- **Error Handling**: Handles initialization errors, invalid table indexes, missing pagination controls, etc.
+
+### Usage
+
+#### Installation/Setup
+```bash
+pip install selenium webdriver-manager pandas
+```
+
+#### Initialization
 ```python
-from data import SeleniumScraperClient
+from dynamic import SeleniumScraperClient
 
 # Initialize the scraper client
 client = SeleniumScraperClient(
-    headless=True,      # whether to run browser in headless mode
-    implicit_wait=10    # implicit wait time (seconds) for Selenium
+    headless=True,      # Run the browser in headless mode
+    implicit_wait=10    # Implicit wait time in seconds
 )
 ```
 
-### Methods
-
 #### List Tables
-Retrieve a list of dictionaries describing each table found on the page. The dictionary includes:
-- Index (zero-based index of the table on the page)
-- Number of rows
-- Number of columns
-- Selenium WebElement reference
-
 ```python
 tables_info = client.list_tables("https://example.com")
 for table_info in tables_info:
-    print(table_info)
+    print(table_info)  # Each entry includes the table index, row/col counts, and the raw WebElement
 ```
 
 #### Scrape Table by Index
-Extract the data from a specific table by specifying its index. Optionally handle pagination by setting `paginated=True` and providing the XPath for the “Next” button.
-
 ```python
 df = client.scrape_table_by_index(
     url="https://example.com",
@@ -50,23 +55,21 @@ df = client.scrape_table_by_index(
     paginated=True,
     next_button_xpath="//button[contains(., 'next page')]"
 )
+print(df.head())
 ```
 
-### Example Workflow
-
-Below is a simple workflow demonstrating how to list available tables on a page and then scrape one of them (with or without pagination).
-
+#### Example Workflow
 ```python
-# Initialize the client
+# 1. Initialize the client
 client = SeleniumScraperClient(headless=True)
 
-# Step 1: List all tables on the webpage
+# 2. List tables on the page
 tables_info = client.list_tables("https://example.com")
 
-# Inspect the output and choose a table index (e.g., 0)
+# Pick a table index from the above list
 chosen_index = 0
 
-# Step 2: Scrape the chosen table (assume it's paginated)
+# 3. Scrape the chosen table
 df_table = client.scrape_table_by_index(
     url="https://example.com",
     table_index=chosen_index,
@@ -74,15 +77,104 @@ df_table = client.scrape_table_by_index(
     next_button_xpath="//button[contains(., 'next page')]"
 )
 
-# Step 3: Examine the DataFrame
+# 4. Inspect the data
 print(df_table.head())
 ```
 
-## Error Handling
+---
 
-- **Driver Initialization**: If the Selenium WebDriver fails to initialize, an error is logged and re-raised.
-- **Table Not Found**: If a specified table index is out of range, an exception is raised with a clear message.
-- **Pagination**: If a user sets `paginated=True` but does not provide a valid `next_button_xpath`, an exception is raised.
-- **Exception Logging**: Any unexpected errors during table extraction or pagination are caught, logged, and clearly communicated.
+## 2. BeautifulSoupScraperClient
 
-This class provides a structured approach to extracting and processing data from websites, with built-in error handling to ensure reliable operation.
+### Overview
+
+`BeautifulSoupScraperClient` uses Requests and BeautifulSoup to scrape data from **static** pages (i.e., HTML is directly rendered without needing JavaScript). If you don’t need JavaScript execution or button-click pagination, this client is significantly simpler and faster than Selenium.
+
+### Features
+
+- **List Tables**: Finds all `<table>` elements, including row and column stats.
+- **Scrape Tables**: Converts table data into a `pandas.DataFrame`.
+- **Optional Pagination**: Follows an `<a>` link or similar “Next” link to load subsequent pages.
+- **Fewer Dependencies**: Relies on `requests` and `beautifulsoup4` only.
+
+### Usage
+
+#### Installation/Setup
+```bash
+pip install requests beautifulsoup4 pandas
+```
+
+#### Initialization
+```python
+from static import BeautifulSoupScraperClient
+
+# Initialize the scraper client
+client = BeautifulSoupScraperClient(
+    timeout=10  # HTTP request timeout in seconds
+)
+```
+
+#### List Tables
+```python
+tables_info = client.list_tables("https://example.com")
+for table_info in tables_info:
+    print(table_info)  # Includes the table index, row/col counts, and the raw BeautifulSoup element
+```
+
+#### Scrape Table by Index
+```python
+df = client.scrape_table_by_index(
+    url="https://example.com",
+    table_index=0,
+    paginated=True,
+    next_button_selector="a.next",  # or other link CSS selector
+    sleep_time=2                    # optional pause between page requests
+)
+print(df.head())
+```
+
+#### Example Workflow
+```python
+# 1. Initialize the client
+client = BeautifulSoupScraperClient()
+
+# 2. List tables on the page
+tables_info = client.list_tables("https://example.com")
+
+# Pick a table index from the above list
+chosen_index = 0
+
+# 3. Scrape the chosen table
+df_table = client.scrape_table_by_index(
+    url="https://example.com",
+    table_index=chosen_index,
+    paginated=True,
+    next_button_selector="a.next"
+)
+
+# 4. Inspect the data
+print(df_table.head())
+```
+
+---
+
+## Choosing Which Client to Use
+
+- **Dynamic Content**: If the site relies heavily on JavaScript or only loads table data after certain interactions (clicking, infinite scroll, etc.), use **SeleniumScraperClient** in `dynamic.py`.
+- **Static Content**: If the data is present in the initial HTML (no JavaScript needed), use **BeautifulSoupScraperClient** in `static.py`.
+
+---
+
+## Error Handling and Logging
+
+Both clients log errors and raise exceptions when:
+- A requested table index doesn’t exist
+- Pagination is enabled but pagination controls aren’t provided
+- Network or driver initialization fails
+
+This helps ensure you know exactly what went wrong and where.
+
+---
+
+## License
+
+Use and modify these scraper clients at your own discretion. They’re provided as-is, without warranty or guarantee. Always remember to scrape responsibly and follow the target site’s Terms of Service. 
